@@ -4,7 +4,22 @@ API for managing the results of operations.
 
 ## Usage
 
-TODO: Write code samples and usage instructions here
+
+```ruby
+def perform_some_operation
+  # Do something that could fail by raising an exception.
+  MuchResult.success(value: "it worked!")
+rescue => error
+  MuchResult.failure(exception: error)
+end
+
+result = perform_some_operation
+
+result.success? # => true
+result.failure? # => false
+result.items    # => [<MuchResult::Item ...>]
+result.value    # => "it worked!"
+```
 
 ## Installation
 
