@@ -8,5 +8,3 @@ $LOAD_PATH.unshift(File.expand_path("../..", __FILE__))
 require "pry"
 
 require "test/support/factory"
-
-# TODO: put test helpers here...

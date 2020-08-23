@@ -1,6 +1,6 @@
 # MuchResult
 
-TODO: Write a gem description
+API for managing the results of operations.
 
 ## Usage
 
