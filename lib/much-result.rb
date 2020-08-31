@@ -19,6 +19,14 @@ class MuchResult
     }
   end
 
+  def self.for_boolean(value, backtrace: caller, **kargs)
+    new(backtrace: backtrace, **kargs).tap { |result|
+      result.add_item(
+        MuchResult::Item.for_boolean(value, backtrace: backtrace, **kargs)
+      )
+    }
+  end
+
   attr_reader :description, :backtrace
 
   def initialize(description: nil, backtrace: caller, **kargs)

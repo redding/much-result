@@ -47,6 +47,16 @@ class MuchResult
       assert_that(result.success_items).equals([])
       assert_that(result.failure_items).equals(result.items)
     end
+
+    should "build instances based on a Boolean result" do
+      true_result = subject.for_boolean(true)
+      assert_that(true_result.success?).is_true
+      assert_that(true_result.failure?).is_false
+
+      false_result = subject.for_boolean(false)
+      assert_that(false_result.success?).is_false
+      assert_that(false_result.failure?).is_true
+    end
   end
 
   class InitTests < UnitTests

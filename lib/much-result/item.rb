@@ -10,6 +10,14 @@ class MuchResult::Item < ::OpenStruct
     new(**kargs, result: MuchResult::FAILURE, backtrace: backtrace)
   end
 
+  def self.for_boolean(value, backtrace: caller, **kargs)
+    new(
+      **kargs,
+      result: value ? MuchResult::SUCCESS : MuchResult::FAILURE,
+      backtrace: backtrace
+    )
+  end
+
   def initialize(result: MuchResult::SUCCESS, backtrace: caller, **kargs)
     super(**kargs, result: result, backtrace: backtrace)
   end
