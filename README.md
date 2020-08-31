@@ -19,6 +19,13 @@ result.success? # => true
 result.failure? # => false
 result.items    # => [<MuchResult::Item ...>]
 result.value    # => "it worked!"
+
+result.set(
+  other_value1: "something else 1",
+  other_value2: "something else 2"
+)
+result.other_value1 # => "something else 1"
+result.other_value2 # => "something else 2"
 ```
 
 ## Installation

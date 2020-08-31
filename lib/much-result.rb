@@ -21,10 +21,12 @@ class MuchResult
 
   attr_reader :description, :backtrace
 
-  def initialize(description: nil, backtrace: caller, **)
+  def initialize(description: nil, backtrace: caller, **kargs)
     @description = description
     @backtrace = backtrace
     @result_items = []
+
+    set(**kargs)
   end
 
   def success?
@@ -38,6 +40,10 @@ class MuchResult
 
   def failure?
     !success?
+  end
+
+  def set(**kargs)
+    @data = ::OpenStruct.new((@data || {}).to_h.merge(**kargs))
   end
 
   def add_item(item)
@@ -61,5 +67,15 @@ class MuchResult
 
   def failure_items
     @failure_items || @result_items.flat_map { |item| item.failure_items }
+  end
+
+  private
+
+  def respond_to_missing?(*args)
+    @data.send(:respond_to_missing?, *args)
+  end
+
+  def method_missing(method, *args, &block)
+    @data.public_send(method, *args, &block)
   end
 end

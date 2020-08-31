@@ -71,17 +71,26 @@ class MuchResult
           backtrace: backtrace1,
           value: value1
         )
+      assert_that(result.identifier).equals(identifier1)
       assert_that(result.items.first.identifier).equals(identifier1)
       assert_that(result.description).equals(description1)
       assert_that(result.items.first.description).equals(description1)
       assert_that(result.backtrace).equals(backtrace1)
       assert_that(result.items.first.backtrace).equals(backtrace1)
+      assert_that(result.value).equals(value1)
       assert_that(result.items.first.value).equals(value1)
 
       exception = result.result_exception
       assert_that(exception).is_instance_of(MuchResult::Error)
       assert_that(exception.message).equals(description1)
       assert_that(exception.backtrace).equals(backtrace1)
+    end
+
+    should "allow setting arbitrary values" do
+      assert_that(subject.other_value).is_nil
+
+      subject.set(other_value: value1)
+      assert_that(subject.other_value).equals(value1)
     end
   end
 end
