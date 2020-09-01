@@ -4,21 +4,57 @@ API for managing the results of operations.
 
 ## Usage
 
+Have services/methods return a MuchResult based on the whether an exception was raised or not:
 
 ```ruby
-def perform_some_operation
-  # Do something that could fail by raising an exception.
-  MuchResult.success(value: "it worked!")
-rescue => error
-  MuchResult.failure(exception: error)
+class PerformSomeOperation
+  def self.call
+    # Do something that could fail by raising an exception.
+    MuchResult.success(value: "it worked!")
+  rescue => exception
+    MuchResult.failure(exception: exception)
+  end
 end
 
-result = perform_some_operation
+result = PerformSomeOperation.call
 
 result.success? # => true
 result.failure? # => false
 result.items    # => [<MuchResult::Item ...>]
 result.value    # => "it worked!"
+```
+
+Have services/methods return a MuchResult based on a result value:
+
+```ruby
+def perform_some_operation(success:)
+  # Do something that could fail.
+  MuchResult.for(success, value: "some value")
+end
+
+result = perform_some_operation(success: true)
+result.success? # => true
+result.failure? # => false
+result.items    # => [<MuchResult::Item ...>]
+result.value    # => "some value"
+
+result = perform_some_operation(success: false)
+result.success? # => false
+result.failure? # => true
+result.items    # => [<MuchResult::Item ...>]
+result.value    # => "some value"
+
+result = perform_some_operation(success: nil)
+result.success? # => false
+result.failure? # => true
+result.items    # => [<MuchResult::Item ...>]
+result.value    # => "some value"
+```
+
+Set arbitrary values on MuchResults before or after they are created:
+
+```ruby
+result = MuchResult.success(value: "it worked!")
 
 result.set(
   other_value1: "something else 1",

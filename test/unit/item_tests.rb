@@ -13,7 +13,7 @@ class MuchResult::Item
     let(:backtrace1) { Factory.backtrace }
     let(:value1) { Factory.value }
 
-    should have_imeths :success, :failure
+    should have_imeths :success, :failure, :for
 
     should "build success instances" do
       item = subject.success
@@ -37,6 +37,28 @@ class MuchResult::Item
       assert_that(item.items).equals([item])
       assert_that(item.success_items).equals([])
       assert_that(item.failure_items).equals(item.items)
+    end
+
+    should "build instances based on given values" do
+      true_result = subject.for(true, value: value1)
+      assert_that(true_result.success?).is_true
+      assert_that(true_result.failure?).is_false
+      assert_that(true_result.value).equals(value1)
+
+      false_result = subject.for(false, value: value1)
+      assert_that(false_result.success?).is_false
+      assert_that(false_result.failure?).is_true
+      assert_that(false_result.value).equals(value1)
+
+      value1_result = subject.for(value1, value: value1)
+      assert_that(value1_result.success?).is_true
+      assert_that(value1_result.failure?).is_false
+      assert_that(value1_result.value).equals(value1)
+
+      nil_result = subject.for(nil, value: value1)
+      assert_that(nil_result.success?).is_false
+      assert_that(nil_result.failure?).is_true
+      assert_that(nil_result.value).equals(value1)
     end
   end
 

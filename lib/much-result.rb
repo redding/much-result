@@ -19,10 +19,12 @@ class MuchResult
     }
   end
 
-  def self.for_boolean(value, backtrace: caller, **kargs)
+  def self.for(value, backtrace: caller, **kargs)
+    return value.set(**kargs) if value.kind_of?(MuchResult)
+
     new(backtrace: backtrace, **kargs).tap { |result|
       result.add_item(
-        MuchResult::Item.for_boolean(value, backtrace: backtrace, **kargs)
+        MuchResult::Item.for(value, backtrace: backtrace, **kargs)
       )
     }
   end
@@ -52,6 +54,7 @@ class MuchResult
 
   def set(**kargs)
     @data = ::OpenStruct.new((@data || {}).to_h.merge(**kargs))
+    self
   end
 
   def add_item(item)
