@@ -73,6 +73,18 @@ class MuchResult
       assert_that(result_result).is_the_same_as(true_result)
       assert_that(result_result.value).equals(value1)
     end
+
+    should "build instances yielded to a given block" do
+      yielded_result = nil
+      tap_result =
+        subject.tap { |result|
+          yielded_result = result
+
+          assert_that(result.success?).is_true
+          assert_that(result.items.size).equals(0)
+        }
+      assert_that(tap_result).is_the_same_as(yielded_result)
+    end
   end
 
   class InitTests < UnitTests
@@ -117,6 +129,47 @@ class MuchResult
 
       subject.set(other_value: value1)
       assert_that(subject.other_value).equals(value1)
+    end
+
+    should "allow capturing other MuchResults as items" do
+      subject.capture { unit_class.success }
+      assert_that(subject.success?).is_true
+      assert_that(subject.items.size).equals(2)
+      assert_that(subject.success_items.size).equals(2)
+      assert_that(subject.failure_items.size).equals(0)
+
+      subject.capture { unit_class.failure }
+      assert_that(subject.success?).is_false
+      assert_that(subject.items.size).equals(3)
+      assert_that(subject.success_items.size).equals(2)
+      assert_that(subject.failure_items.size).equals(1)
+
+      result = unit_class.success
+      result.capture { [true, Factory.integer, Factory.string].sample }
+      assert_that(result.success?).is_true
+      assert_that(result.items.size).equals(2)
+      assert_that(result.success_items.size).equals(2)
+      assert_that(result.failure_items.size).equals(0)
+
+      result.capture { [false, nil].sample }
+      assert_that(result.success?).is_false
+      assert_that(result.items.size).equals(3)
+      assert_that(result.success_items.size).equals(2)
+      assert_that(result.failure_items.size).equals(1)
+
+      result = unit_class.success
+      result.capture! { unit_class.success }
+      assert_that(result.success?).is_true
+      assert_that(result.items.size).equals(2)
+      assert_that(result.success_items.size).equals(2)
+      assert_that(result.failure_items.size).equals(0)
+
+      assert_that(-> { result.capture! { unit_class.failure } }).
+        raises(MuchResult::Error)
+      assert_that(result.success?).is_false
+      assert_that(result.items.size).equals(3)
+      assert_that(result.success_items.size).equals(2)
+      assert_that(result.failure_items.size).equals(1)
     end
   end
 end
