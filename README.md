@@ -71,14 +71,17 @@ Capture MuchResults for sub-operations into a parent MuchResult:
 class PerformSomeOperation
   def self.call
     MuchResult.tap { |result|
-      # result.success? # => true
+      result          # => <MuchResult ...>
+      result.success? # => true
 
-      result.capture  { do_part_1 }
-      result.capture! { do_part_2 } # raise an Exception if failure
+      result.capture { do_part_1 }
+
+      # raise an Exception if failure
+      result.capture! { do_part_2 }
 
       # set some arbitrary values b/c it worked.
       result.set(message: "it worked!")
-    } # => <MuchResult ...>
+    } # => result
   end
 
   def self.do_part_1
@@ -92,6 +95,48 @@ class PerformSomeOperation
   end
 end
 ```
+
+Run transactions capturing results:
+
+```ruby
+class PerformSomeOperation
+  def self.call
+    MuchResult.transaction(
+      ActiveRecord::Base,
+      value: "something"
+    ) { |transaction|
+      transaction                 # => <MuchResult::Transaction ...>
+      transaction.result          # => <MuchResult ...>
+      transaction.value           # => "something"
+      transaction.result.value    # => "something"
+      transaction.success?        # => true
+      transaction.result.success? # => true
+
+      transaction.capture { do_part_1 }
+
+      # raise an Exception if failure (which will rollback the transaction)
+      transaction.capture! { do_part_2 }
+
+      # manually rollback the transaction if needed
+      transaction.rollback if rollback_needed?
+
+      # set some arbitrary values b/c it worked.
+      transaction.set(message: "it worked!")
+    } # => transaction.result
+  end
+
+  def self.do_part_1
+    # Do something that could fail.
+    MuchResult.for(success, description: "Part 1")
+  end
+
+  def self.do_part_1
+    # Do something that could fail.
+    MuchResult.for(success, description: "Part 2")
+  end
+end
+```
+Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a transaction as if it were a MuchResult.
 
 ## Installation
 

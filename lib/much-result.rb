@@ -1,11 +1,13 @@
 require "much-result/version"
 require "much-result/item"
+require "much-result/transaction"
 
 class MuchResult
   SUCCESS = "success".freeze
   FAILURE = "failure".freeze
 
-  Error = Class.new(StandardError)
+  Error    = Class.new(StandardError)
+  Rollback = Class.new(RuntimeError)
 
   def self.success(backtrace: caller, **kargs)
     new(backtrace: backtrace, **kargs).tap { |result|
@@ -33,6 +35,10 @@ class MuchResult
     new(backtrace: backtrace, **kargs).tap { |result|
       yield result if block_given?
     }
+  end
+
+  def self.transaction(receiver, backtrace: caller, **kargs, &block)
+    MuchResult::Transaction.call(receiver, backtrace: backtrace, **kargs, &block)
   end
 
   attr_reader :description, :backtrace
