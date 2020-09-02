@@ -51,7 +51,7 @@ class MuchResult::Transaction
     should "delegate result methods to its result" do
       assert_that(subject.value).equals(subject.result.value)
       assert_that(subject.success?).equals(subject.result.success?)
-      assert_that(subject.items).equals(subject.result.items)
+      assert_that(subject.results).equals(subject.result.results)
     end
 
     should "call transactions on the transaction receiver" do

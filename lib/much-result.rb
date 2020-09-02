@@ -1,5 +1,4 @@
 require "much-result/version"
-require "much-result/item"
 require "much-result/transaction"
 
 class MuchResult
@@ -10,29 +9,25 @@ class MuchResult
   Rollback = Class.new(RuntimeError)
 
   def self.success(backtrace: caller, **kargs)
-    new(backtrace: backtrace, **kargs).tap { |result|
-      result.add_item(MuchResult::Item.success(backtrace: backtrace, **kargs))
-    }
+    new(MuchResult::SUCCESS, **kargs, backtrace: backtrace)
   end
 
   def self.failure(backtrace: caller, **kargs)
-    new(backtrace: backtrace, **kargs).tap { |result|
-      result.add_item(MuchResult::Item.failure(backtrace: backtrace, **kargs))
-    }
+    new(MuchResult::FAILURE, **kargs, backtrace: backtrace)
   end
 
   def self.for(value, backtrace: caller, **kargs)
     return value.set(**kargs) if value.kind_of?(MuchResult)
 
-    new(backtrace: backtrace, **kargs).tap { |result|
-      result.add_item(
-        MuchResult::Item.for(value, backtrace: backtrace, **kargs)
-      )
-    }
+    new(
+      !!value ? MuchResult::SUCCESS : MuchResult::FAILURE,
+      **kargs,
+      backtrace: backtrace
+    )
   end
 
   def self.tap(backtrace: caller, **kargs)
-    new(backtrace: backtrace, **kargs).tap { |result|
+    success(backtrace: backtrace, **kargs).tap { |result|
       yield result if block_given?
     }
   end
@@ -43,18 +38,28 @@ class MuchResult
 
   attr_reader :description, :backtrace
 
-  def initialize(description: nil, backtrace: caller, **kargs)
-    @description = description
-    @backtrace = backtrace
-    @result_items = []
+  def initialize(result_value, description: nil, backtrace: caller, **kargs)
+    @result_value = result_value
+    @description  = description
+    @backtrace    = backtrace
 
     set(**kargs)
+
+    @sub_results = []
+    reset_sub_results_cache
+  end
+
+  def set(**kargs)
+    @data = ::OpenStruct.new((@data || {}).to_h.merge(**kargs))
+    self
   end
 
   def success?
     if @success_predicate.nil?
       @success_predicate =
-        @result_items.reduce(true) { |acc, item| acc && item.success? }
+        @sub_results.reduce(@result_value == MuchResult::SUCCESS) { |acc, result|
+          acc && result.success?
+        }
     end
 
     @success_predicate
@@ -64,27 +69,18 @@ class MuchResult
     !success?
   end
 
-  def set(**kargs)
-    @data = ::OpenStruct.new((@data || {}).to_h.merge(**kargs))
-    self
-  end
-
   def capture(backtrace: caller, **kargs)
     self.class.for(
       (yield if block_given?),
       backtrace: backtrace,
       **kargs
-    ).tap { |result| add_item(result) }
+    ).tap { |result| add_sub_result(result) }
   end
 
   def capture!(backtrace: caller, **kargs, &block)
     capture(backtrace: caller, **kargs, &block).tap { |result|
       raise(result_exception) if result.failure?
     }
-  end
-
-  def add_item(item)
-    @result_items.push(item).tap { reset_result_items_cache }
   end
 
   def result_exception
@@ -94,25 +90,42 @@ class MuchResult
       }
   end
 
-  def items
-    @items ||= @result_items.flat_map { |item| item.items }
+  def results
+    @results ||=
+      [self] +
+      @sub_results.flat_map { |result| result.results }
   end
 
-  def success_items
-    @success_items ||= @result_items.flat_map { |item| item.success_items }
+  def success_results
+    @success_results ||=
+      [*(self if success?)] +
+      @sub_results.flat_map { |result| result.success_results }
   end
 
-  def failure_items
-    @failure_items ||= @result_items.flat_map { |item| item.failure_items }
+  def failure_results
+    @failure_results ||=
+      [*(self if failure?)] +
+      @sub_results.flat_map { |result| result.failure_results }
+  end
+
+  def inspect
+    "#<#{self.class}:#{"0x0%x" % (object_id << 1)} "\
+      "#{success? ? "SUCCESS" : "FAILURE"} "\
+      "#{"@description=#{@description.inspect} " if @description}"\
+      "@sub_results=#{@sub_results.inspect}>"
   end
 
   private
 
-  def reset_result_items_cache
+  def add_sub_result(result)
+    @sub_results.push(result).tap { reset_sub_results_cache }
+  end
+
+  def reset_sub_results_cache
     @success_predicate = nil
-    @items = nil
-    @success_items = nil
-    @failure_items = nil
+    @results = nil
+    @success_results = nil
+    @failure_results = nil
   end
 
   def respond_to_missing?(*args)

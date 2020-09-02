@@ -6,17 +6,6 @@ class MuchResult
     desc "MuchResult"
     subject { unit_class }
 
-    setup do
-      Assert.stub_tap_on_call(MuchResult::Item, :success) { |item, call|
-        @success_result = item
-        @success_item_call = call
-      }
-      Assert.stub_tap_on_call(MuchResult::Item, :failure) { |item, call|
-        @failure_result = item
-        @failure_item_call = call
-      }
-    end
-
     let(:unit_class) { MuchResult }
 
     let(:identifier1) { Factory.string }
@@ -32,9 +21,9 @@ class MuchResult
       assert_that(result.success?).is_true
       assert_that(result.failure?).is_false
 
-      assert_that(result.items).equals([@success_result])
-      assert_that(result.success_items).equals(result.items)
-      assert_that(result.failure_items).equals([])
+      assert_that(result.results).equals([result])
+      assert_that(result.success_results).equals([result])
+      assert_that(result.failure_results).equals([])
     end
 
     should "build failure instances" do
@@ -43,9 +32,9 @@ class MuchResult
       assert_that(result.success?).is_false
       assert_that(result.failure?).is_true
 
-      assert_that(result.items).equals([@failure_result])
-      assert_that(result.success_items).equals([])
-      assert_that(result.failure_items).equals(result.items)
+      assert_that(result.results).equals([result])
+      assert_that(result.success_results).equals([])
+      assert_that(result.failure_results).equals([result])
     end
 
     should "build instances based on given values" do
@@ -81,7 +70,7 @@ class MuchResult
           yielded_result = result
 
           assert_that(result.success?).is_true
-          assert_that(result.items.size).equals(0)
+          assert_that(result.results.size).equals(1)
         }
       assert_that(tap_result).is_the_same_as(yielded_result)
     end
@@ -111,9 +100,10 @@ class MuchResult
 
     let(:result1) { unit_class.success }
 
+    should have_imeths :description, :backtrace, :set
     should have_imeths :success?, :failure?
-    should have_imeths :description, :backtrace, :result_exception
-    should have_imeths :items, :success_items, :failure_items
+    should have_imeths :capture, :capture!, :result_exception
+    should have_imeths :results, :success_results, :failure_results
 
     should "know its attributes" do
       assert_that(subject.description).is_nil
@@ -128,13 +118,9 @@ class MuchResult
           value: value1
         )
       assert_that(result.identifier).equals(identifier1)
-      assert_that(result.items.first.identifier).equals(identifier1)
       assert_that(result.description).equals(description1)
-      assert_that(result.items.first.description).equals(description1)
       assert_that(result.backtrace).equals(backtrace1)
-      assert_that(result.items.first.backtrace).equals(backtrace1)
       assert_that(result.value).equals(value1)
-      assert_that(result.items.first.value).equals(value1)
 
       exception = result.result_exception
       assert_that(exception).is_instance_of(MuchResult::Error)
@@ -149,45 +135,45 @@ class MuchResult
       assert_that(subject.other_value).equals(value1)
     end
 
-    should "allow capturing other MuchResults as items" do
+    should "allow capturing other MuchResults as results" do
       subject.capture { unit_class.success }
       assert_that(subject.success?).is_true
-      assert_that(subject.items.size).equals(2)
-      assert_that(subject.success_items.size).equals(2)
-      assert_that(subject.failure_items.size).equals(0)
+      assert_that(subject.results.size).equals(2)
+      assert_that(subject.success_results.size).equals(2)
+      assert_that(subject.failure_results.size).equals(0)
 
       subject.capture { unit_class.failure }
       assert_that(subject.success?).is_false
-      assert_that(subject.items.size).equals(3)
-      assert_that(subject.success_items.size).equals(2)
-      assert_that(subject.failure_items.size).equals(1)
+      assert_that(subject.results.size).equals(3)
+      assert_that(subject.success_results.size).equals(1)
+      assert_that(subject.failure_results.size).equals(2)
 
       result = unit_class.success
       result.capture { [true, Factory.integer, Factory.string].sample }
       assert_that(result.success?).is_true
-      assert_that(result.items.size).equals(2)
-      assert_that(result.success_items.size).equals(2)
-      assert_that(result.failure_items.size).equals(0)
+      assert_that(result.results.size).equals(2)
+      assert_that(result.success_results.size).equals(2)
+      assert_that(result.failure_results.size).equals(0)
 
       result.capture { [false, nil].sample }
       assert_that(result.success?).is_false
-      assert_that(result.items.size).equals(3)
-      assert_that(result.success_items.size).equals(2)
-      assert_that(result.failure_items.size).equals(1)
+      assert_that(result.results.size).equals(3)
+      assert_that(result.success_results.size).equals(1)
+      assert_that(result.failure_results.size).equals(2)
 
       result = unit_class.success
       result.capture! { unit_class.success }
       assert_that(result.success?).is_true
-      assert_that(result.items.size).equals(2)
-      assert_that(result.success_items.size).equals(2)
-      assert_that(result.failure_items.size).equals(0)
+      assert_that(result.results.size).equals(2)
+      assert_that(result.success_results.size).equals(2)
+      assert_that(result.failure_results.size).equals(0)
 
       assert_that(-> { result.capture! { unit_class.failure } }).
         raises(MuchResult::Error)
       assert_that(result.success?).is_false
-      assert_that(result.items.size).equals(3)
-      assert_that(result.success_items.size).equals(2)
-      assert_that(result.failure_items.size).equals(1)
+      assert_that(result.results.size).equals(3)
+      assert_that(result.success_results.size).equals(1)
+      assert_that(result.failure_results.size).equals(2)
     end
   end
 end

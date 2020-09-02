@@ -12,7 +12,7 @@ class MuchResult::Transaction
   end
 
   def result
-    @result ||= MuchResult.new(**@result_kargs)
+    @result ||= MuchResult.success(**@result_kargs)
   end
 
   def call(&block)
