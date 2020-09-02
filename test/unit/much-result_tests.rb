@@ -24,7 +24,7 @@ class MuchResult
     let(:backtrace1) { Factory.backtrace }
     let(:value1) { Factory.value }
 
-    should have_imeths :success, :failure, :for
+    should have_imeths :success, :failure, :for, :tap, :transaction
 
     should "build success instances" do
       result = subject.success
@@ -84,6 +84,24 @@ class MuchResult
           assert_that(result.items.size).equals(0)
         }
       assert_that(tap_result).is_the_same_as(yielded_result)
+    end
+
+    should "call transactions on a transaction receiver" do
+      MuchStub.on_call(MuchResult::Transaction, :call) { |call|
+        @transaction_call = call
+      }
+
+      receiver1 = Factory.transaction_receiver
+      kargs1 = {
+        backtrace: Factory.backtrace,
+        value: value1
+      }
+      block1 = -> {}
+      subject.transaction(receiver1, **kargs1, &block1)
+
+      assert_that(@transaction_call.pargs).equals([receiver1])
+      assert_that(@transaction_call.kargs).equals(kargs1)
+      assert_that(@transaction_call.block).equals(block1)
     end
   end
 
