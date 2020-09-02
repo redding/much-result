@@ -19,11 +19,19 @@ class MuchResult
     }
   end
 
-  def self.for_boolean(value, backtrace: caller, **kargs)
+  def self.for(value, backtrace: caller, **kargs)
+    return value.set(**kargs) if value.kind_of?(MuchResult)
+
     new(backtrace: backtrace, **kargs).tap { |result|
       result.add_item(
-        MuchResult::Item.for_boolean(value, backtrace: backtrace, **kargs)
+        MuchResult::Item.for(value, backtrace: backtrace, **kargs)
       )
+    }
+  end
+
+  def self.tap(backtrace: caller, **kargs)
+    new(backtrace: backtrace, **kargs).tap { |result|
+      yield result if block_given?
     }
   end
 
@@ -52,10 +60,25 @@ class MuchResult
 
   def set(**kargs)
     @data = ::OpenStruct.new((@data || {}).to_h.merge(**kargs))
+    self
+  end
+
+  def capture(backtrace: caller, **kargs)
+    self.class.for(
+      (yield if block_given?),
+      backtrace: backtrace,
+      **kargs
+    ).tap { |result| add_item(result) }
+  end
+
+  def capture!(backtrace: caller, **kargs, &block)
+    capture(backtrace: caller, **kargs, &block).tap { |result|
+      raise(result_exception) if result.failure?
+    }
   end
 
   def add_item(item)
-    @result_items.push(item)
+    @result_items.push(item).tap { reset_result_items_cache }
   end
 
   def result_exception
@@ -70,14 +93,21 @@ class MuchResult
   end
 
   def success_items
-    @success_items || @result_items.flat_map { |item| item.success_items }
+    @success_items ||= @result_items.flat_map { |item| item.success_items }
   end
 
   def failure_items
-    @failure_items || @result_items.flat_map { |item| item.failure_items }
+    @failure_items ||= @result_items.flat_map { |item| item.failure_items }
   end
 
   private
+
+  def reset_result_items_cache
+    @success_predicate = nil
+    @items = nil
+    @success_items = nil
+    @failure_items = nil
+  end
 
   def respond_to_missing?(*args)
     @data.send(:respond_to_missing?, *args)
