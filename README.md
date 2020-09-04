@@ -18,9 +18,10 @@ end
 
 result = PerformSomeOperation.call
 
-result.success? # => true
-result.failure? # => false
-result.message  # => "it worked!"
+result.success?    # => true
+result.failure?    # => false
+result.message     # => "it worked!"
+result.sub_results # => []
 ```
 
 Have services/methods return a MuchResult based on a result value (i.e. "truthy" = success; "false-y" = failure):
@@ -96,7 +97,13 @@ result = PerformSomeOperation.call
 
 result.success? # => true
 result.message  # => "it worked!"
-result.results  # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get just the immediate sub-results that were captured for the MuchResult.
+result.sub_results # => [<MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get all MuchResults that make up this MuchResult (including those captured
+# on all recursive sub-results).
+result.all_results # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
 ```
 
 ### Transactions
@@ -145,7 +152,13 @@ result = PerformSomeOperation.call
 
 result.success? # => true
 result.message  # => "it worked!"
-result.results  # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get just the immediate sub-results that were captured for the MuchResult.
+result.sub_results # => [<MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get all MuchResults that make up this MuchResult (including those captured
+# on all recursive sub-results).
+result.all_results # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
 ```
 
 Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a MuchResult::Transaction as if it were a MuchResult.
