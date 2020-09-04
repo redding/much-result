@@ -20,11 +20,10 @@ result = PerformSomeOperation.call
 
 result.success? # => true
 result.failure? # => false
-result.items    # => [<MuchResult::Item ...>]
 result.message  # => "it worked!"
 ```
 
-Have services/methods return a MuchResult based on a result message:
+Have services/methods return a MuchResult based on a result value (i.e. "truthy" = success; "false-y" = failure):
 
 ```ruby
 def perform_some_operation(success:)
@@ -35,19 +34,16 @@ end
 result = perform_some_operation(success: true)
 result.success? # => true
 result.failure? # => false
-result.items    # => [<MuchResult::Item ...>]
 result.message  # => "it ran :shrug:"
 
 result = perform_some_operation(success: false)
 result.success? # => false
 result.failure? # => true
-result.items    # => [<MuchResult::Item ...>]
 result.message  # => "it ran :shrug:"
 
 result = perform_some_operation(success: nil)
 result.success? # => false
 result.failure? # => true
-result.items    # => [<MuchResult::Item ...>]
 result.message  # => "it ran :shrug:"
 ```
 
@@ -64,6 +60,7 @@ result.other_value1 # => "something else 1"
 result.other_value2 # => "something else 2"
 ```
 
+### Capture sub-Results
 
 Capture MuchResults for sub-operations into a parent MuchResult:
 
@@ -86,17 +83,25 @@ class PerformSomeOperation
 
   def self.do_part_1
     # Do something that could fail.
-    MuchResult.for(success, description: "Part 1")
+    MuchResult.for(..., description: "Part 1")
   end
 
   def self.do_part_1
     # Do something that could fail.
-    MuchResult.for(success, description: "Part 2")
+    MuchResult.for(..., description: "Part 2")
   end
 end
+
+result = PerformSomeOperation.call
+
+result.success? # => true
+result.message  # => "it worked!"
+result.results  # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
 ```
 
-Run transactions capturing results:
+### Transactions
+
+Run transactions capturing sub-Results:
 
 ```ruby
 class PerformSomeOperation
@@ -105,12 +110,12 @@ class PerformSomeOperation
       ActiveRecord::Base,
       value: "something"
     ) { |transaction|
-      transaction                 # => <MuchResult::Transaction ...>
-      transaction.result          # => <MuchResult ...>
-      transaction.value           # => "something"
-      transaction.result.value    # => "something"
-      transaction.success?        # => true
-      transaction.result.success? # => true
+      transaction        # => <MuchResult::Transaction ...>
+      transaction.result # => <MuchResult ...>
+
+      # You can interact with a transaction as if it were a MuchResult.
+      transaction.value    # => "something"
+      transaction.success? # => true
 
       transaction.capture { do_part_1 }
 
@@ -127,16 +132,23 @@ class PerformSomeOperation
 
   def self.do_part_1
     # Do something that could fail.
-    MuchResult.for(success, description: "Part 1")
+    MuchResult.for(..., description: "Part 1")
   end
 
   def self.do_part_1
     # Do something that could fail.
-    MuchResult.for(success, description: "Part 2")
+    MuchResult.for(..., description: "Part 2")
   end
 end
+
+result = PerformSomeOperation.call
+
+result.success? # => true
+result.message  # => "it worked!"
+result.results  # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
 ```
-Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a transaction as if it were a MuchResult.
+
+Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a MuchResult::Transaction as if it were a MuchResult.
 
 ## Installation
 
