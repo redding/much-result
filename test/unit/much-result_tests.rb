@@ -21,9 +21,13 @@ class MuchResult
       assert_that(result.success?).is_true
       assert_that(result.failure?).is_false
 
-      assert_that(result.results).equals([result])
-      assert_that(result.success_results).equals([result])
-      assert_that(result.failure_results).equals([])
+      assert_that(result.sub_results).equals([])
+      assert_that(result.success_sub_results).equals([])
+      assert_that(result.failure_sub_results).equals([])
+
+      assert_that(result.all_results).equals([result])
+      assert_that(result.all_success_results).equals([result])
+      assert_that(result.all_failure_results).equals([])
     end
 
     should "build failure instances" do
@@ -32,9 +36,13 @@ class MuchResult
       assert_that(result.success?).is_false
       assert_that(result.failure?).is_true
 
-      assert_that(result.results).equals([result])
-      assert_that(result.success_results).equals([])
-      assert_that(result.failure_results).equals([result])
+      assert_that(result.sub_results).equals([])
+      assert_that(result.success_sub_results).equals([])
+      assert_that(result.failure_sub_results).equals([])
+
+      assert_that(result.all_results).equals([result])
+      assert_that(result.all_success_results).equals([])
+      assert_that(result.all_failure_results).equals([result])
     end
 
     should "build instances based on given values" do
@@ -70,7 +78,8 @@ class MuchResult
           yielded_result = result
 
           assert_that(result.success?).is_true
-          assert_that(result.results.size).equals(1)
+          assert_that(result.sub_results.size).equals(0)
+          assert_that(result.all_results.size).equals(1)
         }
       assert_that(tap_result).is_the_same_as(yielded_result)
     end
@@ -103,7 +112,8 @@ class MuchResult
     should have_imeths :description, :backtrace, :set
     should have_imeths :success?, :failure?
     should have_imeths :capture, :capture!, :result_exception
-    should have_imeths :results, :success_results, :failure_results
+    should have_imeths :sub_results, :success_sub_results, :failure_sub_results
+    should have_imeths :all_results, :all_success_results, :all_failure_results
 
     should "know its attributes" do
       assert_that(subject.description).is_nil
@@ -138,42 +148,60 @@ class MuchResult
     should "allow capturing other MuchResults as results" do
       subject.capture { unit_class.success }
       assert_that(subject.success?).is_true
-      assert_that(subject.results.size).equals(2)
-      assert_that(subject.success_results.size).equals(2)
-      assert_that(subject.failure_results.size).equals(0)
+      assert_that(subject.sub_results.size).equals(1)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(0)
+      assert_that(subject.all_results.size).equals(2)
+      assert_that(subject.all_success_results.size).equals(2)
+      assert_that(subject.all_failure_results.size).equals(0)
 
       subject.capture { unit_class.failure }
       assert_that(subject.success?).is_false
-      assert_that(subject.results.size).equals(3)
-      assert_that(subject.success_results.size).equals(1)
-      assert_that(subject.failure_results.size).equals(2)
+      assert_that(subject.sub_results.size).equals(2)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(1)
+      assert_that(subject.all_results.size).equals(3)
+      assert_that(subject.all_success_results.size).equals(1)
+      assert_that(subject.all_failure_results.size).equals(2)
 
       result = unit_class.success
       result.capture { [true, Factory.integer, Factory.string].sample }
       assert_that(result.success?).is_true
-      assert_that(result.results.size).equals(2)
-      assert_that(result.success_results.size).equals(2)
-      assert_that(result.failure_results.size).equals(0)
+      assert_that(result.sub_results.size).equals(1)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(0)
+      assert_that(result.all_results.size).equals(2)
+      assert_that(result.all_success_results.size).equals(2)
+      assert_that(result.all_failure_results.size).equals(0)
 
       result.capture { [false, nil].sample }
       assert_that(result.success?).is_false
-      assert_that(result.results.size).equals(3)
-      assert_that(result.success_results.size).equals(1)
-      assert_that(result.failure_results.size).equals(2)
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(1)
+      assert_that(result.all_failure_results.size).equals(2)
 
       result = unit_class.success
       result.capture! { unit_class.success }
       assert_that(result.success?).is_true
-      assert_that(result.results.size).equals(2)
-      assert_that(result.success_results.size).equals(2)
-      assert_that(result.failure_results.size).equals(0)
+      assert_that(result.sub_results.size).equals(1)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(0)
+      assert_that(result.all_results.size).equals(2)
+      assert_that(result.all_success_results.size).equals(2)
+      assert_that(result.all_failure_results.size).equals(0)
 
       assert_that(-> { result.capture! { unit_class.failure } }).
         raises(MuchResult::Error)
       assert_that(result.success?).is_false
-      assert_that(result.results.size).equals(3)
-      assert_that(result.success_results.size).equals(1)
-      assert_that(result.failure_results.size).equals(2)
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(1)
+      assert_that(result.all_failure_results.size).equals(2)
     end
   end
 end

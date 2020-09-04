@@ -36,7 +36,7 @@ class MuchResult
     MuchResult::Transaction.call(receiver, backtrace: backtrace, **kargs, &block)
   end
 
-  attr_reader :description, :backtrace
+  attr_reader :sub_results, :description, :backtrace
 
   def initialize(result_value, description: nil, backtrace: caller, **kargs)
     @result_value = result_value
@@ -90,22 +90,30 @@ class MuchResult
       }
   end
 
-  def results
-    @results ||=
+  def success_sub_results
+    @success_sub_results ||= @sub_results.select { |result| result.success? }
+  end
+
+  def failure_sub_results
+    @failure_sub_results ||= @sub_results.select { |result| result.failure? }
+  end
+
+  def all_results
+    @all_results ||=
       [self] +
-      @sub_results.flat_map { |result| result.results }
+      @sub_results.flat_map { |result| result.all_results }
   end
 
-  def success_results
-    @success_results ||=
+  def all_success_results
+    @all_success_results ||=
       [*(self if success?)] +
-      @sub_results.flat_map { |result| result.success_results }
+      @sub_results.flat_map { |result| result.all_success_results }
   end
 
-  def failure_results
-    @failure_results ||=
+  def all_failure_results
+    @all_failure_results ||=
       [*(self if failure?)] +
-      @sub_results.flat_map { |result| result.failure_results }
+      @sub_results.flat_map { |result| result.all_failure_results }
   end
 
   def inspect
@@ -123,9 +131,11 @@ class MuchResult
 
   def reset_sub_results_cache
     @success_predicate = nil
-    @results = nil
-    @success_results = nil
-    @failure_results = nil
+    @success_sub_results = nil
+    @failure_sub_results = nil
+    @all_results = nil
+    @all_success_results = nil
+    @all_failure_results = nil
   end
 
   def respond_to_missing?(*args)
