@@ -79,15 +79,14 @@ class MuchResult
 
   def capture!(backtrace: caller, **kargs, &block)
     capture(backtrace: caller, **kargs, &block).tap { |result|
-      raise(result_exception) if result.failure?
+      raise(result.capture_exception) if result.failure?
     }
   end
 
-  def result_exception
-    @result_exception ||=
-      Error.new(description).tap { |exception|
-        exception.set_backtrace(backtrace)
-      }
+  # Prefer any `#exception` set on the data. Fallback to building an exception
+  # from the description/backtrace of the result.
+  def capture_exception
+    @data.exception || build_default_capture_exception
   end
 
   def success_sub_results
@@ -127,6 +126,10 @@ class MuchResult
 
   def add_sub_result(result)
     @sub_results.push(result).tap { reset_sub_results_cache }
+  end
+
+  def build_default_capture_exception
+    Error.new(description).tap { |exception| exception.set_backtrace(backtrace) }
   end
 
   def reset_sub_results_cache
