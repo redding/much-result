@@ -2,6 +2,10 @@ require "much-result"
 
 class MuchResult; end
 class MuchResult::Transaction
+  def self.halt_throw_value
+    :muchresult_transaction_halt
+  end
+
   def self.call(receiver, **result_kargs, &block)
     new(receiver, **result_kargs).call(&block)
   end
@@ -17,7 +21,9 @@ class MuchResult::Transaction
 
   def call(&block)
     begin
-      @receiver.transaction { block.call(self) }
+      @receiver.transaction do
+        catch(self.class.halt_throw_value) { block.call(self) }
+      end
     rescue MuchResult::Rollback
       # do nothing
     end
@@ -27,6 +33,10 @@ class MuchResult::Transaction
 
   def rollback
     raise MuchResult::Rollback
+  end
+
+  def halt
+    throw(self.class.halt_throw_value)
   end
 
   private

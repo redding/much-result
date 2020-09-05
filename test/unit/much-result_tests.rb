@@ -101,6 +101,18 @@ class MuchResult
       assert_that(@transaction_call.kargs).equals(kargs1)
       assert_that(@transaction_call.block).equals(block1)
     end
+
+    should "halt transactions" do
+      receiver1 = Factory.transaction_receiver
+      result =
+        subject.transaction(receiver1) do |transaction|
+          transaction.capture { "something1"}
+          transaction.halt
+          transaction.capture { "something2" }
+        end
+
+      assert_that(result.sub_results.size).equals(1)
+    end
   end
 
   class InitTests < UnitTests

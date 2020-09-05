@@ -17,7 +17,11 @@ class MuchResult::Transaction
       ->(transaction) { transaction.set(block_called: true) }
     }
 
-    should have_imeths :call
+    should have_imeths :halt_throw_value, :call
+
+    should "know its halt throw value" do
+      assert_that(subject.halt_throw_value).equals(:muchresult_transaction_halt)
+    end
 
     should "call transactions on a transaction receiver" do
       MuchStub.tap_on_call(unit_class, :new) { |transaction, new_call|
@@ -39,7 +43,7 @@ class MuchResult::Transaction
     desc "when init"
     subject { unit_class.new(receiver1, **kargs1) }
 
-    should have_imeths :result, :call, :rollback
+    should have_imeths :result, :call, :rollback, :halt
 
     should "know its result" do
       assert_that(subject.result).is_instance_of(MuchResult)
@@ -75,6 +79,16 @@ class MuchResult::Transaction
       block1 = ->(transaction) { raise StandardError }
       assert_that(-> {subject.call(&block1)}).raises(StandardError)
       assert_that(receiver1.rolled_back?).is_true
+    end
+
+    should "halt transactions" do
+      catch(unit_class.halt_throw_value) do
+        subject.capture { "something1" }
+        subject.halt
+        subject.capture { "something2" }
+      end
+
+      assert_that(subject.sub_results.size).equals(1)
     end
   end
 end
