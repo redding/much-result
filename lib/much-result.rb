@@ -1,4 +1,5 @@
 require "much-result/version"
+require "much-result/aggregate"
 require "much-result/transaction"
 
 class MuchResult
@@ -115,6 +116,30 @@ class MuchResult
     @all_failure_results ||=
       [*(self if failure?)] +
       @sub_results.flat_map { |result| result.all_failure_results }
+  end
+
+  def get_for_sub_results(attribute_name)
+    MuchResult::Aggregate.(sub_results.map(&attribute_name.to_sym))
+  end
+
+  def get_for_success_sub_results(attribute_name)
+    MuchResult::Aggregate.(success_sub_results.map(&attribute_name.to_sym))
+  end
+
+  def get_for_failure_sub_results(attribute_name)
+    MuchResult::Aggregate.(failure_sub_results.map(&attribute_name.to_sym))
+  end
+
+  def get_for_all_results(attribute_name)
+    MuchResult::Aggregate.(all_results.map(&attribute_name.to_sym))
+  end
+
+  def get_for_all_success_results(attribute_name)
+    MuchResult::Aggregate.(all_success_results.map(&attribute_name.to_sym))
+  end
+
+  def get_for_all_failure_results(attribute_name)
+    MuchResult::Aggregate.(all_failure_results.map(&attribute_name.to_sym))
   end
 
   def to_much_result(backtrace: caller, **kargs)

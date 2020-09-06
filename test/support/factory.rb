@@ -8,8 +8,15 @@ module Factory
     [Factory.integer, Factory.string, Object.new].sample
   end
 
+  def self.hash_value(with_nested_hash = true)
+    {
+      value1: Factory.value,
+      value2: with_nested_hash ? Factory.hash_value(false) : Factory.value
+    }
+  end
+
   def self.backtrace
-    Factory.integer(3).times.map{ Factory.string }
+    Factory.integer(3).times.map{ Factory.path }
   end
 
   def self.transaction_receiver

@@ -68,7 +68,7 @@ Capture MuchResults for sub-operations into a parent MuchResult:
 ```ruby
 class PerformSomeOperation
   def self.call
-    MuchResult.tap { |result|
+    MuchResult.tap(description: "Do both parts") { |result|
       result          # => <MuchResult ...>
       result.success? # => true
 
@@ -83,13 +83,11 @@ class PerformSomeOperation
   end
 
   def self.do_part_1
-    # Do something that could fail.
-    MuchResult.for(..., description: "Part 1")
+    MuchResult.failure(description: "Part 1")
   end
 
-  def self.do_part_1
-    # Do something that could fail.
-    MuchResult.for(..., description: "Part 2")
+  def self.do_part_2
+    MuchResult.success(description: "Part 2")
   end
 end
 
@@ -104,6 +102,21 @@ result.sub_results # => [<MuchResult Part 1>, <MuchResult Part 2>]
 # Get all MuchResults that make up this MuchResult (including those captured
 # on all recursive sub-results).
 result.all_results # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get aggregated values for each MuchResult that makes up this MuchResult.
+result.get_for_sub_results(:description)
+# => ["Part 1", "Part 2"]
+result.get_for_success_sub_results(:description)
+# => ["Part 2"]
+result.get_for_failure_sub_results(:description)
+# => ["Part 1"]
+
+result.get_for_all_results(:description)
+# => ["Do both parts", "Part 1", "Part 2"]
+result.get_for_all_success_results(:description)
+# => ["Part 2"]
+result.get_for_all_failure_results(:description)
+# => ["Do both parts", "Part 1"]
 ```
 
 ### Transactions
@@ -115,7 +128,8 @@ class PerformSomeOperation
   def self.call
     MuchResult.transaction(
       ActiveRecord::Base,
-      value: "something"
+      value: "something",
+      description: "Do both parts"
     ) { |transaction|
       transaction        # => <MuchResult::Transaction ...>
       transaction.result # => <MuchResult ...>
@@ -143,13 +157,19 @@ class PerformSomeOperation
   end
 
   def self.do_part_1
-    # Do something that could fail.
-    MuchResult.for(..., description: "Part 1")
+    MuchResult.failure(description: "Part 1")
   end
 
-  def self.do_part_1
-    # Do something that could fail.
-    MuchResult.for(..., description: "Part 2")
+  def self.do_part_2
+    MuchResult.success(description: "Part 2")
+  end
+
+  def rollback_needed?
+    false
+  end
+
+  def halt_needed?
+    false
   end
 end
 
@@ -164,6 +184,21 @@ result.sub_results # => [<MuchResult Part 1>, <MuchResult Part 2>]
 # Get all MuchResults that make up this MuchResult (including those captured
 # on all recursive sub-results).
 result.all_results # => [result, <MuchResult Part 1>, <MuchResult Part 2>]
+
+# Get aggregated values for each MuchResult that makes up this MuchResult.
+result.get_for_sub_results(:description)
+# => ["Part 1", "Part 2"]
+result.get_for_success_sub_results(:description)
+# => ["Part 2"]
+result.get_for_failure_sub_results(:description)
+# => ["Part 1"]
+
+result.get_for_all_results(:description)
+# => ["Do both parts", "Part 1", "Part 2"]
+result.get_for_all_success_results(:description)
+# => ["Part 2"]
+result.get_for_all_failure_results(:description)
+# => ["Do both parts", "Part 1"]
 ```
 
 Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a MuchResult::Transaction as if it were a MuchResult.
