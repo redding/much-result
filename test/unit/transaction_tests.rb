@@ -37,9 +37,7 @@ class MuchResult::Transaction
 
   class InitTests < UnitTests
     desc "when init"
-    subject { transaction1 }
-
-    let(:transaction1) { unit_class.new(receiver1, **kargs1) }
+    subject { unit_class.new(receiver1, **kargs1) }
 
     should have_imeths :result, :call, :rollback
 

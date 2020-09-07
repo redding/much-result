@@ -105,9 +105,7 @@ class MuchResult
 
   class InitTests < UnitTests
     desc "when init"
-    subject { result1 }
-
-    let(:result1) { unit_class.success }
+    subject { unit_class.success }
 
     should have_imeths :description, :backtrace, :set
     should have_imeths :success?, :failure?
