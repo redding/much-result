@@ -130,7 +130,12 @@ class PerformSomeOperation
       transaction.capture! { do_part_2 }
 
       # manually rollback the transaction if needed
+      # (stops processing and doesn't commit the transaction)
       transaction.rollback if rollback_needed?
+
+      # manually halt the transaction if needed
+      # (stops processing and commits the transaction)
+      transaction.halt if halt_needed?
 
       # set some arbitrary values b/c it worked.
       transaction.set(message: "it worked!")
