@@ -17,7 +17,9 @@ class MuchResult
   end
 
   def self.for(value, backtrace: caller, **kargs)
-    return value.set(**kargs) if value.kind_of?(MuchResult)
+    if value.respond_to?(:to_much_result)
+      return value.to_much_result(**kargs, backtrace: backtrace)
+    end
 
     new(
       !!value ? MuchResult::SUCCESS : MuchResult::FAILURE,
@@ -113,6 +115,10 @@ class MuchResult
     @all_failure_results ||=
       [*(self if failure?)] +
       @sub_results.flat_map { |result| result.all_failure_results }
+  end
+
+  def to_much_result(backtrace: caller, **kargs)
+    self.set(**kargs)
   end
 
   def inspect
