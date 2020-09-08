@@ -66,9 +66,9 @@ class MuchResult
       assert_that(nil_result.failure?).is_true
       assert_that(nil_result.value).equals(value1)
 
-      result_result = subject.for(true_result, value: value1)
+      result_result = subject.for(true_result, value2: value1)
       assert_that(result_result).is_the_same_as(true_result)
-      assert_that(result_result.value).equals(value1)
+      assert_that(result_result.value2).equals(value1)
     end
 
     should "build instances yielded to a given block" do
@@ -124,6 +124,7 @@ class MuchResult
     should have_imeths :capture, :capture!, :capture_exception
     should have_imeths :sub_results, :success_sub_results, :failure_sub_results
     should have_imeths :all_results, :all_success_results, :all_failure_results
+    should have_imeths :to_much_result
 
     should "know its attributes" do
       assert_that(subject.description).is_nil
@@ -233,6 +234,14 @@ class MuchResult
       assert_that(result.all_results.size).equals(4)
       assert_that(result.all_success_results.size).equals(1)
       assert_that(result.all_failure_results.size).equals(3)
+    end
+
+    should "convert itself to a MuchResult" do
+      assert_that(subject.value).is_nil
+
+      result = subject.to_much_result(value: value1)
+      assert_that(result).is_the_same_as(subject)
+      assert_that(subject.value).equals(value1)
     end
   end
 end
