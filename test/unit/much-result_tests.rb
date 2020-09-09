@@ -119,9 +119,20 @@ class MuchResult
     desc "when init"
     subject { unit_class.success }
 
+    let(:failure1) {
+      unit_class.failure(description: Factory.string)
+    }
+    let(:failure2) {
+      unit_class.failure(exception: StandardError.new(Factory.string))
+    }
+
     should have_imeths :description, :backtrace, :set
     should have_imeths :success?, :failure?
-    should have_imeths :capture, :capture!, :capture_exception
+    should have_imeths :capture_for, :capture_for!
+    should have_imeths :capture_for_all, :capture_for_all!
+    should have_imeths :capture, :capture!
+    should have_imeths :capture_all, :capture_all!
+    should have_imeths :capture_exception
     should have_imeths :sub_results, :success_sub_results, :failure_sub_results
     should have_imeths :all_results, :all_success_results, :all_failure_results
     should have_imeths :get_for_sub_results
@@ -160,8 +171,8 @@ class MuchResult
       assert_that(subject.other_value).equals(value1)
     end
 
-    should "allow capturing other MuchResults as results" do
-      subject.capture { unit_class.success(values: { value1: Factory.value }) }
+    should "capture MuchResults as sub-results" do
+      subject.capture_for(unit_class.success(values: { value1: Factory.value }))
       assert_that(subject.success?).is_true
       assert_that(subject.sub_results.size).equals(1)
       assert_that(subject.success_sub_results.size).equals(1)
@@ -192,7 +203,7 @@ class MuchResult
       assert_that(subject.get_for_all_failure_results("values")).equals(
         [])
 
-      subject.capture { unit_class.failure(values: { value1: Factory.value }) }
+      subject.capture_for(unit_class.failure(values: { value1: Factory.value }))
       assert_that(subject.success?).is_false
       assert_that(subject.sub_results.size).equals(2)
       assert_that(subject.success_sub_results.size).equals(1)
@@ -230,6 +241,123 @@ class MuchResult
         ])
 
       result = unit_class.success
+
+      result.capture_for([true, Factory.integer, Factory.string].sample)
+      assert_that(result.success?).is_true
+      assert_that(result.sub_results.size).equals(1)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(0)
+      assert_that(result.all_results.size).equals(2)
+      assert_that(result.all_success_results.size).equals(2)
+      assert_that(result.all_failure_results.size).equals(0)
+
+      result.capture_for([false, nil].sample)
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(1)
+      assert_that(result.all_failure_results.size).equals(2)
+
+      result = unit_class.success
+
+      # Test the default built capture exception.
+      exception =
+        assert_that(-> {
+          result.capture_for!(failure1)
+        }).raises(MuchResult::Error)
+      assert_that(exception.message).equals(failure1.description)
+      assert_that(exception.backtrace).equals(failure1.backtrace)
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(1)
+      assert_that(result.success_sub_results.size).equals(0)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(2)
+      assert_that(result.all_success_results.size).equals(0)
+      assert_that(result.all_failure_results.size).equals(2)
+
+      # Test that we prefer any set `result.exception` over the default built
+      # capture exception.
+      exception =
+        assert_that(-> {
+          result.capture_for!(failure2)
+        }).raises(failure2.exception.class)
+      assert_that(exception.message).equals(failure2.exception.message)
+      assert_that(exception.backtrace).equals(failure2.exception.backtrace)
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(0)
+      assert_that(result.failure_sub_results.size).equals(2)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(0)
+      assert_that(result.all_failure_results.size).equals(3)
+    end
+
+    should "capture MuchResults from an Array as sub-results" do
+      subject.capture_for_all([unit_class.success, unit_class.failure])
+      assert_that(subject.success?).is_false
+      assert_that(subject.sub_results.size).equals(2)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(1)
+      assert_that(subject.all_results.size).equals(3)
+      assert_that(subject.all_success_results.size).equals(1)
+      assert_that(subject.all_failure_results.size).equals(2)
+
+      result = unit_class.success
+
+      result.capture_for_all(
+        [
+          [true, Factory.integer, Factory.string].sample,
+          [false, nil].sample
+        ]
+      )
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(1)
+      assert_that(result.all_failure_results.size).equals(2)
+
+      result = unit_class.success
+
+      exception =
+        assert_that(-> {
+          result.capture_for_all!([failure1, failure2])
+        }).raises(MuchResult::Error)
+      assert_that(exception.message).equals(failure1.description)
+      assert_that(exception.backtrace).equals(failure1.backtrace)
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(0)
+      assert_that(result.failure_sub_results.size).equals(2)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(0)
+      assert_that(result.all_failure_results.size).equals(3)
+    end
+
+    should "capture MuchResults from a block as sub-results" do
+      subject.capture { unit_class.success }
+      assert_that(subject.success?).is_true
+      assert_that(subject.sub_results.size).equals(1)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(0)
+      assert_that(subject.all_results.size).equals(2)
+      assert_that(subject.all_success_results.size).equals(2)
+      assert_that(subject.all_failure_results.size).equals(0)
+
+      subject.capture { unit_class.failure }
+      assert_that(subject.success?).is_false
+      assert_that(subject.sub_results.size).equals(2)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(1)
+      assert_that(subject.all_results.size).equals(3)
+      assert_that(subject.all_success_results.size).equals(1)
+      assert_that(subject.all_failure_results.size).equals(2)
+
+      result = unit_class.success
+
       result.capture { [true, Factory.integer, Factory.string].sample }
       assert_that(result.success?).is_true
       assert_that(result.sub_results.size).equals(1)
@@ -249,22 +377,40 @@ class MuchResult
       assert_that(result.all_failure_results.size).equals(2)
 
       result = unit_class.success
-      result.capture! { unit_class.success }
-      assert_that(result.success?).is_true
-      assert_that(result.sub_results.size).equals(1)
-      assert_that(result.success_sub_results.size).equals(1)
-      assert_that(result.failure_sub_results.size).equals(0)
-      assert_that(result.all_results.size).equals(2)
-      assert_that(result.all_success_results.size).equals(2)
-      assert_that(result.all_failure_results.size).equals(0)
 
-      # Test the default built capture exception.
-      failure1 = unit_class.failure(description: Factory.string)
       exception =
-        assert_that(-> { result.capture! { failure1 } }).
-          raises(MuchResult::Error)
+        assert_that(-> {
+          result.capture! { failure1 }
+        }).raises(MuchResult::Error)
       assert_that(exception.message).equals(failure1.description)
       assert_that(exception.backtrace).equals(failure1.backtrace)
+      assert_that(result.success?).is_false
+      assert_that(result.sub_results.size).equals(1)
+      assert_that(result.success_sub_results.size).equals(0)
+      assert_that(result.failure_sub_results.size).equals(1)
+      assert_that(result.all_results.size).equals(2)
+      assert_that(result.all_success_results.size).equals(0)
+      assert_that(result.all_failure_results.size).equals(2)
+    end
+
+    should "capture MuchResults from a block from an Array as sub-results" do
+      subject.capture_all { [unit_class.success, unit_class.failure] }
+      assert_that(subject.success?).is_false
+      assert_that(subject.sub_results.size).equals(2)
+      assert_that(subject.success_sub_results.size).equals(1)
+      assert_that(subject.failure_sub_results.size).equals(1)
+      assert_that(subject.all_results.size).equals(3)
+      assert_that(subject.all_success_results.size).equals(1)
+      assert_that(subject.all_failure_results.size).equals(2)
+
+      result = unit_class.success
+
+      result.capture_all do
+        [
+          [true, Factory.integer, Factory.string].sample,
+          [false, nil].sample
+        ]
+      end
       assert_that(result.success?).is_false
       assert_that(result.sub_results.size).equals(2)
       assert_that(result.success_sub_results.size).equals(1)
@@ -273,20 +419,20 @@ class MuchResult
       assert_that(result.all_success_results.size).equals(1)
       assert_that(result.all_failure_results.size).equals(2)
 
-      # Test that we prefer any set `result.exception` over the default built
-      # capture exception.
-      failure2 = unit_class.failure(exception: StandardError.new(Factory.string))
+      result = unit_class.success
+
       exception =
-        assert_that(-> { result.capture! { failure2 } }).
-          raises(failure2.exception.class)
-      assert_that(exception.message).equals(failure2.exception.message)
-      assert_that(exception.backtrace).equals(failure2.exception.backtrace)
+        assert_that(-> {
+          result.capture_all! { [failure1, failure2] }
+        }).raises(MuchResult::Error)
+      assert_that(exception.message).equals(failure1.description)
+      assert_that(exception.backtrace).equals(failure1.backtrace)
       assert_that(result.success?).is_false
-      assert_that(result.sub_results.size).equals(3)
-      assert_that(result.success_sub_results.size).equals(1)
+      assert_that(result.sub_results.size).equals(2)
+      assert_that(result.success_sub_results.size).equals(0)
       assert_that(result.failure_sub_results.size).equals(2)
-      assert_that(result.all_results.size).equals(4)
-      assert_that(result.all_success_results.size).equals(1)
+      assert_that(result.all_results.size).equals(3)
+      assert_that(result.all_success_results.size).equals(0)
       assert_that(result.all_failure_results.size).equals(3)
     end
 

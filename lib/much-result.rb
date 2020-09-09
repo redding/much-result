@@ -72,18 +72,45 @@ class MuchResult
     !success?
   end
 
+  def capture_for(value, backtrace: caller, **kargs)
+    self.class.for(value, backtrace: backtrace, **kargs).tap { |result|
+      @sub_results.push(result)
+      reset_sub_results_cache
+    }
+  end
+
+  def capture_for!(value, backtrace:caller, **kargs)
+    capture_for(value, **kargs, backtrace: backtrace).tap { |result|
+      raise(result.capture_exception) if result.failure?
+    }
+  end
+
+  def capture_for_all(values, backtrace: caller, **kargs)
+    [*values].map { |value| capture_for(value, **kargs, backtrace: backtrace) }
+  end
+
+  def capture_for_all!(values, backtrace: caller, **kargs, &block)
+    capture_for_all(values, **kargs, backtrace: backtrace).tap { |results|
+      if (first_failure_result = results.detect(&:failure?))
+        raise(first_failure_result.capture_exception)
+      end
+    }
+  end
+
   def capture(backtrace: caller, **kargs)
-    self.class.for(
-      (yield if block_given?),
-      backtrace: backtrace,
-      **kargs
-    ).tap { |result| add_sub_result(result) }
+    capture_for((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
   def capture!(backtrace: caller, **kargs, &block)
-    capture(backtrace: caller, **kargs, &block).tap { |result|
-      raise(result.capture_exception) if result.failure?
-    }
+    capture_for!((yield if block_given?), **kargs, backtrace: backtrace)
+  end
+
+  def capture_all(backtrace: caller, **kargs)
+    capture_for_all((yield if block_given?), **kargs, backtrace: backtrace)
+  end
+
+  def capture_all!(backtrace: caller, **kargs, &block)
+    capture_for_all!((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
   # Prefer any `#exception` set on the data. Fallback to building an exception
@@ -154,10 +181,6 @@ class MuchResult
   end
 
   private
-
-  def add_sub_result(result)
-    @sub_results.push(result).tap { reset_sub_results_cache }
-  end
 
   def build_default_capture_exception
     Error.new(description).tap { |exception| exception.set_backtrace(backtrace) }
