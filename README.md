@@ -73,9 +73,11 @@ class PerformSomeOperation
       result.success? # => true
 
       result.capture { do_part_1 }
+      # OR you can use `capture_all` to capture from an Array of MuchResults
 
       # raise an Exception if failure
       result.capture! { do_part_2 }
+      # OR you can use `capture_all!` to capture from an Array of MuchResults
 
       # set some arbitrary values b/c it worked.
       result.set(message: "it worked!")
@@ -139,9 +141,11 @@ class PerformSomeOperation
       transaction.success? # => true
 
       transaction.capture { do_part_1 }
+      # OR you can use `capture_all` to capture from an Array of MuchResults
 
       # raise an Exception if failure (which will rollback the transaction)
       transaction.capture! { do_part_2 }
+      # OR you can use `capture_all!` to capture from an Array of MuchResults
 
       # manually rollback the transaction if needed
       # (stops processing and doesn't commit the transaction)
