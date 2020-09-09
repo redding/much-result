@@ -124,6 +124,10 @@ class MuchResult
     should have_imeths :capture, :capture!, :capture_exception
     should have_imeths :sub_results, :success_sub_results, :failure_sub_results
     should have_imeths :all_results, :all_success_results, :all_failure_results
+    should have_imeths :get_for_sub_results
+    should have_imeths :get_for_success_sub_results, :get_for_failure_sub_results
+    should have_imeths :get_for_all_results
+    should have_imeths :get_for_all_success_results, :get_for_all_failure_results
     should have_imeths :to_much_result
 
     should "know its attributes" do
@@ -157,23 +161,73 @@ class MuchResult
     end
 
     should "allow capturing other MuchResults as results" do
-      subject.capture { unit_class.success }
+      subject.capture { unit_class.success(values: { value1: Factory.value }) }
       assert_that(subject.success?).is_true
       assert_that(subject.sub_results.size).equals(1)
       assert_that(subject.success_sub_results.size).equals(1)
       assert_that(subject.failure_sub_results.size).equals(0)
+      assert_that(subject.get_for_sub_results("values")[:value1]).equals(
+        [
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_success_sub_results("values")[:value1]).equals(
+        [
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_failure_sub_results("values")).equals(
+        [])
       assert_that(subject.all_results.size).equals(2)
       assert_that(subject.all_success_results.size).equals(2)
       assert_that(subject.all_failure_results.size).equals(0)
+      assert_that(subject.get_for_all_results("values")[:value1]).equals(
+        [
+          nil,
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_all_success_results("values")[:value1]).equals(
+        [
+          nil,
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_all_failure_results("values")).equals(
+        [])
 
-      subject.capture { unit_class.failure }
+      subject.capture { unit_class.failure(values: { value1: Factory.value }) }
       assert_that(subject.success?).is_false
       assert_that(subject.sub_results.size).equals(2)
       assert_that(subject.success_sub_results.size).equals(1)
       assert_that(subject.failure_sub_results.size).equals(1)
+      assert_that(subject.get_for_sub_results("values")[:value1]).equals(
+        [
+          subject.success_sub_results.first.values[:value1],
+          subject.failure_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_success_sub_results("values")[:value1]).equals(
+        [
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_failure_sub_results("values")[:value1]).equals(
+        [
+          subject.failure_sub_results.first.values[:value1]
+        ])
       assert_that(subject.all_results.size).equals(3)
       assert_that(subject.all_success_results.size).equals(1)
       assert_that(subject.all_failure_results.size).equals(2)
+      assert_that(subject.get_for_all_results("values")[:value1]).equals(
+        [
+          nil,
+          subject.success_sub_results.first.values[:value1],
+          subject.failure_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_all_success_results("values")[:value1]).equals(
+        [
+          subject.success_sub_results.first.values[:value1]
+        ])
+      assert_that(subject.get_for_all_failure_results("values")[:value1]).equals(
+        [
+          nil,
+          subject.failure_sub_results.first.values[:value1]
+        ])
 
       result = unit_class.success
       result.capture { [true, Factory.integer, Factory.string].sample }
