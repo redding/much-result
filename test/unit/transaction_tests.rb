@@ -48,6 +48,8 @@ class MuchResult::Transaction
     should "know its result" do
       assert_that(subject.result).is_instance_of(MuchResult)
       assert_that(subject.result.value).equals(value1)
+      assert_that(subject.result.much_result_transaction_rolled_back).is_false
+      assert_that(subject.result.much_result_transaction_halted).is_false
     end
 
     should "delegate result methods to its result" do
@@ -79,6 +81,9 @@ class MuchResult::Transaction
       block1 = ->(transaction) { raise StandardError }
       assert_that(-> {subject.call(&block1)}).raises(StandardError)
       assert_that(receiver1.rolled_back?).is_true
+
+      assert_that(subject.result.much_result_transaction_rolled_back).is_true
+      assert_that(subject.result.much_result_transaction_halted).is_false
     end
 
     should "halt transactions" do
@@ -89,6 +94,9 @@ class MuchResult::Transaction
       end
 
       assert_that(subject.sub_results.size).equals(1)
+
+      assert_that(subject.result.much_result_transaction_rolled_back).is_false
+      assert_that(subject.result.much_result_transaction_halted).is_true
     end
   end
 end

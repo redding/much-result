@@ -13,6 +13,9 @@ class MuchResult::Transaction
   def initialize(receiver, **result_kargs)
     @receiver = receiver
     @result_kargs = result_kargs
+
+    result.much_result_transaction_rolled_back = false
+    result.much_result_transaction_halted = false
   end
 
   def result
@@ -32,10 +35,12 @@ class MuchResult::Transaction
   end
 
   def rollback
+    result.much_result_transaction_rolled_back = true
     raise MuchResult::Rollback
   end
 
   def halt
+    result.much_result_transaction_halted = true
     throw(self.class.halt_throw_value)
   end
 

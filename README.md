@@ -178,6 +178,9 @@ result = PerformSomeOperation.call
 result.success? # => true
 result.message  # => "it worked!"
 
+result.much_result_transaction_rolled_back # => false
+result.much_result_transaction_halted      # => false
+
 # Get just the immediate sub-results that were captured for the MuchResult.
 result.sub_results # => [<MuchResult Part 1>, <MuchResult Part 2>]
 
