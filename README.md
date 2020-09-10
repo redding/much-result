@@ -210,6 +210,18 @@ result.get_for_all_failure_results(:description)
 
 Note: MuchResult::Transactions are designed to delegate to their MuchResult. You can interact with a MuchResult::Transaction as if it were a MuchResult.
 
+You can configure a default transaction receiver (e.g. `ActiveRecord::Base`) in an initializer. Doing so means if no receiver is passed to `MuchResult.transaction`, the default receiver will be used:
+
+```ruby
+# In an initializer or configuration script:
+MuchResult.default_transaction_receiver = ActiveRecord::Base
+
+# Since no receiver is passed, ActiveRecord::Base will be used:
+MuchResult.transaction do |transaction|
+  # ...
+end
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:

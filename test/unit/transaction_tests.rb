@@ -45,6 +45,12 @@ class MuchResult::Transaction
 
     should have_imeths :result, :call, :rollback, :halt
 
+    should "complain if given a nil receiver" do
+      assert_that(-> {
+        unit_class.new(nil, **kargs1)
+      }).raises(ArgumentError)
+    end
+
     should "know its result" do
       assert_that(subject.result).is_instance_of(MuchResult)
       assert_that(subject.result.value).equals(value1)

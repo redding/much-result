@@ -11,6 +11,8 @@ class MuchResult::Transaction
   end
 
   def initialize(receiver, **result_kargs)
+    raise(ArgumentError, "`receiver` can't be nil.") if receiver.nil?
+
     @receiver = receiver
     @result_kargs = result_kargs
 

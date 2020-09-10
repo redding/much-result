@@ -35,8 +35,28 @@ class MuchResult
     }
   end
 
-  def self.transaction(receiver, backtrace: caller, **kargs, &block)
-    MuchResult::Transaction.call(receiver, backtrace: backtrace, **kargs, &block)
+  def self.transaction(receiver = nil, backtrace: caller, **kargs, &block)
+    if (transaction_receiver = receiver || default_transaction_receiver).nil?
+      raise(
+        ArgumentError,
+        "no receiver given and no default_transaction_receiver configured."
+      )
+    end
+
+    MuchResult::Transaction.(
+      receiver || default_transaction_receiver,
+      backtrace: backtrace,
+      **kargs,
+      &block
+    )
+  end
+
+  def self.default_transaction_receiver
+    @default_transaction_receiver
+  end
+
+  def self.default_transaction_receiver=(receiver)
+    @default_transaction_receiver = receiver
   end
 
   attr_reader :sub_results, :description, :backtrace
