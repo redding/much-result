@@ -14,6 +14,7 @@ class MuchResult
     let(:value1) { Factory.value }
 
     should have_imeths :success, :failure, :for, :tap, :transaction
+    should have_accessors :default_transaction_receiver
 
     should "build success instances" do
       result = subject.success
@@ -112,6 +113,35 @@ class MuchResult
         end
 
       assert_that(result.sub_results.size).equals(1)
+    end
+
+    should "configure default transaction receivers" do
+      MuchStub.on_call(MuchResult::Transaction, :call) { |call|
+        @transaction_call = call
+      }
+
+      receiver1 = Factory.transaction_receiver
+      kargs1 = {
+        backtrace: Factory.backtrace,
+        value: value1
+      }
+      block1 = -> {}
+
+      assert_that(subject.default_transaction_receiver).is_nil
+      assert_that(-> {
+        subject.transaction(**kargs1, &block1)
+      }).raises(ArgumentError)
+
+      subject.default_transaction_receiver = receiver1
+      subject.transaction(**kargs1, &block1)
+
+      assert_that(subject.default_transaction_receiver).equals(receiver1)
+      assert_that(@transaction_call.pargs).equals([receiver1])
+      assert_that(@transaction_call.kargs).equals(kargs1)
+      assert_that(@transaction_call.block).equals(block1)
+
+      subject.default_transaction_receiver = nil
+      assert_that(subject.default_transaction_receiver).is_nil
     end
   end
 
