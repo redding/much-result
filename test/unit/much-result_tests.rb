@@ -157,6 +157,7 @@ class MuchResult
     }
 
     should have_imeths :description, :backtrace, :set
+    should have_imeths :attributes, :attribute_names
     should have_imeths :success?, :failure?
     should have_imeths :capture_for, :capture_for!
     should have_imeths :capture_for_all, :capture_for_all!
@@ -194,11 +195,20 @@ class MuchResult
       assert_that(exception.backtrace).equals(backtrace1)
     end
 
-    should "allow setting arbitrary values" do
+    should "allow setting arbitrary attributes" do
       assert_that(subject.other_value).is_nil
 
       subject.set(other_value: value1)
       assert_that(subject.other_value).equals(value1)
+    end
+
+    should "provide details on dynamically defined attributes" do
+      assert_that(subject.attributes).is_empty
+
+      subject.new_attribute = "new_value"
+
+      assert_that(subject.attributes).equals(new_attribute: "new_value")
+      assert_that(subject.attribute_names).equals([:new_attribute])
     end
 
     should "capture MuchResults as sub-results" do

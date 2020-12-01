@@ -77,6 +77,14 @@ class MuchResult
     self
   end
 
+  def attributes
+    @data.to_h.reject { |key, _| key.to_s.start_with?("much_result_") }
+  end
+
+  def attribute_names
+    attributes.keys
+  end
+
   def success?
     if @success_predicate.nil?
       @success_predicate =
@@ -197,7 +205,8 @@ class MuchResult
     "#<#{self.class}:#{"0x0%x" % (object_id << 1)} "\
       "#{success? ? "SUCCESS" : "FAILURE"} "\
       "#{"@description=#{@description.inspect} " if @description}"\
-      "@sub_results=#{@sub_results.inspect}>"
+      "@sub_results=#{@sub_results.inspect} "\
+      "attribute_names: #{attribute_names}>"
   end
 
   private
