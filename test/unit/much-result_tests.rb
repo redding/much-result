@@ -196,23 +196,40 @@ class MuchResult
     end
 
     should "allow setting arbitrary attributes" do
+      assert_that(subject.attributes).is_empty
+      assert_that(subject.attribute_names).is_empty
+
+      new_value = Factory.string
+      subject.new_attribute = new_value
+
+      assert_that(subject.attributes).equals(new_attribute: new_value)
+      assert_that(subject.attribute_names).equals([:new_attribute])
+
       assert_that(subject.other_value).is_nil
+      assert_that(subject.attributes).equals(new_attribute: new_value)
+      assert_that(subject.attribute_names).equals([:new_attribute])
+
+      return_value = subject.set(other_value: nil)
+
+      assert_that(return_value).is_the_same_as(subject)
+      assert_that(subject.other_value).is_nil
+      assert_that(subject.attributes)
+        .equals(new_attribute: new_value, other_value: nil)
+      assert_that(subject.attribute_names)
+        .equals([:new_attribute, :other_value])
 
       subject.set(other_value: value1)
+
       assert_that(subject.other_value).equals(value1)
-    end
-
-    should "provide details on dynamically defined attributes" do
-      assert_that(subject.attributes).is_empty
-
-      subject.new_attribute = "new_value"
-
-      assert_that(subject.attributes).equals(new_attribute: "new_value")
-      assert_that(subject.attribute_names).equals([:new_attribute])
+      assert_that(subject.attributes)
+        .equals(new_attribute: new_value, other_value: value1)
+      assert_that(subject.attribute_names)
+        .equals([:new_attribute, :other_value])
     end
 
     should "capture MuchResults as sub-results" do
       subject.capture_for(unit_class.success(values: { value1: Factory.value }))
+
       assert_that(subject.success?).is_true
       assert_that(subject.sub_results.size).equals(1)
       assert_that(subject.success_sub_results.size).equals(1)
