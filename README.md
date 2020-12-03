@@ -59,6 +59,15 @@ result.set(
 result.message      # => "it worked!"
 result.other_value1 # => "something else 1"
 result.other_value2 # => "something else 2"
+
+result.attribute_names # => [:message, :other_value1, :other_value2]
+
+result.attributes
+# => {
+#  message: "it worked!",
+#  other_value1: "something else 1",
+#  other_value2: "something else 2"
+# }
 ```
 
 ### Capture sub-Results
