@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "assert/factory"
 require "much-stub/call"
 
@@ -11,7 +13,7 @@ module Factory
   def self.hash_value(with_nested_hash = true)
     {
       value1: Factory.value,
-      value2: with_nested_hash ? Factory.hash_value(false) : Factory.value
+      value2: with_nested_hash ? Factory.hash_value(false) : Factory.value,
     }
   end
 
@@ -30,9 +32,9 @@ module Factory
       @rolled_back = false
       @last_transaction_call = MuchStub::Call.new(&block)
       block.call
-    rescue => exception
+    rescue => ex
       @rolled_back = true
-      raise exception
+      raise ex
     end
 
     def rolled_back?

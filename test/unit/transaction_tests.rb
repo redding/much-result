@@ -1,21 +1,23 @@
+# frozen_string_literal: true
+
 require "assert"
 require "much-result/transaction"
 
 class MuchResult::Transaction
   class UnitTests < Assert::Context
     desc "MuchResult::Transaction"
-    subject { unit_class }
+    subject{ unit_class }
 
-    let(:unit_class) { MuchResult::Transaction }
+    let(:unit_class){ MuchResult::Transaction }
 
-    let(:receiver1) { Factory.transaction_receiver }
-    let(:value1) { Factory.value }
-    let(:kargs1) {
-      { value:  value1 }
-    }
-    let(:block1) {
-      ->(transaction) { transaction.set(block_called: true) }
-    }
+    let(:receiver1){ Factory.transaction_receiver }
+    let(:value1){ Factory.value }
+    let(:kargs1) do
+      { value: value1 }
+    end
+    let(:block1) do
+      ->(transaction){ transaction.set(block_called: true) }
+    end
 
     should have_imeths :halt_throw_value, :call
 
@@ -24,12 +26,12 @@ class MuchResult::Transaction
     end
 
     should "call transactions on a transaction receiver" do
-      MuchStub.tap_on_call(unit_class, :new) { |transaction, new_call|
+      MuchStub.tap_on_call(unit_class, :new) do |transaction, new_call|
         @new_call = new_call
-        MuchStub.on_call(transaction, :call) { |transaction_call|
+        MuchStub.on_call(transaction, :call) do |transaction_call|
           @transaction_call = transaction_call
-        }
-      }
+        end
+      end
 
       subject.call(receiver1, **kargs1, &block1)
 
@@ -41,12 +43,12 @@ class MuchResult::Transaction
 
   class InitTests < UnitTests
     desc "when init"
-    subject { unit_class.new(receiver1, **kargs1) }
+    subject{ unit_class.new(receiver1, **kargs1) }
 
     should have_imeths :result, :call, :rollback, :halt
 
     should "complain if given a nil receiver" do
-      assert_that(-> {
+      assert_that(->{
         unit_class.new(nil, **kargs1)
       }).raises(ArgumentError)
     end
@@ -65,9 +67,9 @@ class MuchResult::Transaction
     end
 
     should "call transactions on the transaction receiver" do
-      MuchStub.tap_on_call(block1, :call) { |_, call|
+      MuchStub.tap_on_call(block1, :call) do |_, call|
         @block_call = call
-      }
+      end
 
       result = subject.call(&block1)
 
@@ -78,14 +80,14 @@ class MuchResult::Transaction
     end
 
     should "rollback transactions on the transaction receiver" do
-      assert_that(-> { subject.rollback }).raises(MuchResult::Rollback)
+      assert_that(->{ subject.rollback }).raises(MuchResult::Rollback)
 
-      block1 = ->(transaction) { transaction.rollback }
-      assert_that(-> {subject.call(&block1)}).does_not_raise
+      block1 = ->(transaction){ transaction.rollback }
+      assert_that(->{ subject.call(&block1) }).does_not_raise
       assert_that(receiver1.rolled_back?).is_true
 
-      block1 = ->(transaction) { raise StandardError }
-      assert_that(-> {subject.call(&block1)}).raises(StandardError)
+      block1 = ->(_transaction){ raise StandardError }
+      assert_that(->{ subject.call(&block1) }).raises(StandardError)
       assert_that(receiver1.rolled_back?).is_true
 
       assert_that(subject.result.much_result_transaction_rolled_back).is_true
@@ -94,9 +96,9 @@ class MuchResult::Transaction
 
     should "halt transactions" do
       catch(unit_class.halt_throw_value) do
-        subject.capture { "something1" }
+        subject.capture{ "something1" }
         subject.halt
-        subject.capture { "something2" }
+        subject.capture{ "something2" }
       end
 
       assert_that(subject.sub_results.size).equals(1)

@@ -1,6 +1,9 @@
+# frozen_string_literal: true
+
 require "much-result"
 
 class MuchResult; end
+
 class MuchResult::Transaction
   def self.halt_throw_value
     :muchresult_transaction_halt
@@ -27,7 +30,7 @@ class MuchResult::Transaction
   def call(&block)
     begin
       @receiver.transaction do
-        catch(self.class.halt_throw_value) { block.call(self) }
+        catch(self.class.halt_throw_value){ block.call(self) }
       end
     rescue MuchResult::Rollback
       # do nothing
