@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require "much-result/version"
 require "much-result/aggregate"
 require "much-result/transaction"
 
 class MuchResult
-  SUCCESS = "success".freeze
-  FAILURE = "failure".freeze
+  SUCCESS = "success"
+  FAILURE = "failure"
 
   Error    = Class.new(StandardError)
   Rollback = Class.new(RuntimeError)
@@ -25,38 +27,38 @@ class MuchResult
     new(
       !!value ? MuchResult::SUCCESS : MuchResult::FAILURE,
       **kargs,
-      backtrace: backtrace
+      backtrace: backtrace,
     )
   end
 
   def self.tap(backtrace: caller, **kargs)
-    success(backtrace: backtrace, **kargs).tap { |result|
+    success(backtrace: backtrace, **kargs).tap do |result|
       yield result if block_given?
-    }
+    end
   end
 
   def self.transaction(receiver = nil, backtrace: caller, **kargs, &block)
     if (transaction_receiver = receiver || default_transaction_receiver).nil?
       raise(
         ArgumentError,
-        "no receiver given and no default_transaction_receiver configured."
+        "no receiver given and no default_transaction_receiver configured.",
       )
     end
 
-    MuchResult::Transaction.(
-      receiver || default_transaction_receiver,
+    MuchResult::Transaction.call(
+      transaction_receiver,
       backtrace: backtrace,
       **kargs,
       &block
     )
   end
 
-  def self.default_transaction_receiver
-    @default_transaction_receiver
+  class << self
+    attr_reader :default_transaction_receiver
   end
 
-  def self.default_transaction_receiver=(receiver)
-    @default_transaction_receiver = receiver
+  class << self
+    attr_writer :default_transaction_receiver
   end
 
   attr_reader :sub_results, :description, :backtrace
@@ -78,7 +80,7 @@ class MuchResult
   end
 
   def attributes
-    @data.to_h.reject { |key, _| key.to_s.start_with?("much_result_") }
+    @data.to_h.reject{ |key, _| key.to_s.start_with?("much_result_") }
   end
 
   def attribute_names
@@ -88,9 +90,10 @@ class MuchResult
   def success?
     if @success_predicate.nil?
       @success_predicate =
-        @sub_results.reduce(@result_value == MuchResult::SUCCESS) { |acc, result|
-          acc && result.success?
-        }
+        @sub_results
+          .reduce(@result_value == MuchResult::SUCCESS) do |acc, result|
+            acc && result.success?
+          end
     end
 
     @success_predicate
@@ -101,35 +104,35 @@ class MuchResult
   end
 
   def capture_for(value, backtrace: caller, **kargs)
-    self.class.for(value, backtrace: backtrace, **kargs).tap { |result|
+    self.class.for(value, backtrace: backtrace, **kargs).tap do |result|
       @sub_results.push(result)
       reset_sub_results_cache
-    }
+    end
   end
 
-  def capture_for!(value, backtrace:caller, **kargs)
-    capture_for(value, **kargs, backtrace: backtrace).tap { |result|
+  def capture_for!(value, backtrace: caller, **kargs)
+    capture_for(value, **kargs, backtrace: backtrace).tap do |result|
       raise(result.capture_exception) if result.failure?
-    }
+    end
   end
 
   def capture_for_all(values, backtrace: caller, **kargs)
-    [*values].map { |value| capture_for(value, **kargs, backtrace: backtrace) }
+    [*values].map{ |value| capture_for(value, **kargs, backtrace: backtrace) }
   end
 
-  def capture_for_all!(values, backtrace: caller, **kargs, &block)
-    capture_for_all(values, **kargs, backtrace: backtrace).tap { |results|
+  def capture_for_all!(values, backtrace: caller, **kargs)
+    capture_for_all(values, **kargs, backtrace: backtrace).tap do |results|
       if (first_failure_result = results.detect(&:failure?))
         raise(first_failure_result.capture_exception)
       end
-    }
+    end
   end
 
   def capture(backtrace: caller, **kargs)
     capture_for((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
-  def capture!(backtrace: caller, **kargs, &block)
+  def capture!(backtrace: caller, **kargs)
     capture_for!((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
@@ -137,7 +140,7 @@ class MuchResult
     capture_for_all((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
-  def capture_all!(backtrace: caller, **kargs, &block)
+  def capture_all!(backtrace: caller, **kargs)
     capture_for_all!((yield if block_given?), **kargs, backtrace: backtrace)
   end
 
@@ -148,58 +151,60 @@ class MuchResult
   end
 
   def success_sub_results
-    @success_sub_results ||= @sub_results.select { |result| result.success? }
+    @success_sub_results ||= @sub_results.select(&:success?)
   end
 
   def failure_sub_results
-    @failure_sub_results ||= @sub_results.select { |result| result.failure? }
+    @failure_sub_results ||= @sub_results.select(&:failure?)
   end
 
   def all_results
     @all_results ||=
       [self] +
-      @sub_results.flat_map { |result| result.all_results }
+      @sub_results.flat_map(&:all_results)
   end
 
   def all_success_results
     @all_success_results ||=
       [*(self if success?)] +
-      @sub_results.flat_map { |result| result.all_success_results }
+      @sub_results.flat_map(&:all_success_results)
   end
 
   def all_failure_results
     @all_failure_results ||=
       [*(self if failure?)] +
-      @sub_results.flat_map { |result| result.all_failure_results }
+      @sub_results.flat_map(&:all_failure_results)
   end
 
   def get_for_sub_results(attribute_name)
-    MuchResult::Aggregate.(sub_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(sub_results.map(&attribute_name.to_sym))
   end
 
   def get_for_success_sub_results(attribute_name)
-    MuchResult::Aggregate.(success_sub_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(success_sub_results.map(&attribute_name.to_sym))
   end
 
   def get_for_failure_sub_results(attribute_name)
-    MuchResult::Aggregate.(failure_sub_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(failure_sub_results.map(&attribute_name.to_sym))
   end
 
   def get_for_all_results(attribute_name)
-    MuchResult::Aggregate.(all_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(all_results.map(&attribute_name.to_sym))
   end
 
   def get_for_all_success_results(attribute_name)
-    MuchResult::Aggregate.(all_success_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(all_success_results.map(&attribute_name.to_sym))
   end
 
   def get_for_all_failure_results(attribute_name)
-    MuchResult::Aggregate.(all_failure_results.map(&attribute_name.to_sym))
+    MuchResult::Aggregate.call(all_failure_results.map(&attribute_name.to_sym))
   end
 
+  # rubocop:disable Lint/UnusedMethodArgument
   def to_much_result(backtrace: caller, **kargs)
-    self.set(**kargs)
+    set(**kargs)
   end
+  # rubocop:enable Lint/UnusedMethodArgument
 
   def inspect
     "#<#{self.class}:#{"0x0%x" % (object_id << 1)} "\
@@ -212,7 +217,7 @@ class MuchResult
   private
 
   def build_default_capture_exception
-    Error.new(description).tap { |exception| exception.set_backtrace(backtrace) }
+    Error.new(description).tap{ |exception| exception.set_backtrace(backtrace) }
   end
 
   def reset_sub_results_cache
