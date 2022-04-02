@@ -51,11 +51,11 @@ class MuchResult::Transaction
 
   private
 
-  def respond_to_missing?(*args)
-    result.send(:respond_to_missing?, *args)
+  def respond_to_missing?(*pargs, **kargs)
+    result.send(:respond_to_missing?, *pargs, **kargs)
   end
 
-  def method_missing(method, *args, &block)
-    result.public_send(method, *args, &block)
+  def method_missing(method, *pargs, **kargs, &block)
+    result.public_send(method, *pargs, **kargs, &block)
   end
 end
